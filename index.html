@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de decisión</title>
+<style>
+:root{
+  --crema:#FBF9F5;
+  --terracota:#B85233;
+  --terracota-osc:#8F3E24;
+  --terracota-claro:#F8EAE4;
+  --bosque:#4F6838;
+  --bosque-osc:#3B4F29;
+  --bosque-claro:#EEF2E8;
+  --tinta:#2A2420;
+  --suave:#6B6259;
+  --borde:#E4DACB;
+  --tarjeta:#FFFFFF;
+  --neutro:#F3EFE8;
+}
+*{box-sizing:border-box}
+html{font-size:18px;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--crema);color:var(--tinta);
+  font-family:Georgia,"Times New Roman",serif;line-height:1.65;
+}
+.barra{background:#F4EEE4;border-bottom:1px solid var(--borde)}
+.barra .envoltura{padding:.6rem 1rem;font-size:.85rem;color:var(--suave)}
+.envoltura{max-width:780px;margin:0 auto;padding:1.2rem 1rem 3rem}
+.tarjeta{
+  background:var(--tarjeta);border:1px solid var(--borde);border-radius:14px;
+  padding:1.6rem 1.7rem;margin-bottom:1.2rem;
+}
+.tarjeta.decision{border-top:6px solid var(--terracota)}
+.tarjeta.final{border-top:6px solid var(--bosque)}
+.tarjeta.neutra{border-top:6px solid #A39A8E}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.25;margin:0 0 .6rem}
+h1{font-size:1.75rem}
+h2{font-size:1.3rem}
+h3{font-size:1.1rem;margin-top:1.6rem}
+h1:focus,h2:focus{outline:none}
+p{margin:.2rem 0 .9rem}
+.etiqueta{font-weight:bold;font-size:.95rem;margin:0 0 .5rem}
+.decision .etiqueta{color:var(--terracota-osc)}
+.final .etiqueta{color:var(--bosque-osc)}
+.neutra .etiqueta{color:var(--suave)}
+.subtitulo{font-size:1.05rem;margin:1.2rem 0 .2rem;color:var(--terracota-osc)}
+.situacion{font-size:1.15rem}
+.foto{
+  display:block;margin:.8rem 0;padding:.8rem 1rem;border:2px dashed #B9AE9F;
+  background:#F7F2EA;border-radius:10px;font-style:italic;color:#5A5148;
+}
+.opciones{margin-top:1.2rem}
+.opcion{
+  display:flex;gap:.9rem;align-items:flex-start;width:100%;text-align:left;
+  background:#fff;border:2px solid var(--terracota);border-radius:12px;
+  padding:.9rem 1rem;margin:0 0 .75rem;min-height:56px;
+  font:inherit;color:var(--tinta);cursor:pointer;
+}
+.opcion:hover{background:var(--terracota-claro)}
+.opcion:focus-visible,.btn:focus-visible,input:focus-visible{outline:3px solid var(--tinta);outline-offset:2px}
+.letra{
+  flex:none;width:2rem;height:2rem;border-radius:50%;background:var(--terracota);
+  color:#fff;font-weight:bold;display:flex;align-items:center;justify-content:center;
+  font-family:system-ui,Arial,sans-serif;font-size:.95rem;margin-top:.1rem;
+}
+.btn{
+  display:inline-block;border:none;border-radius:10px;padding:.85rem 1.7rem;min-height:48px;
+  font:inherit;font-weight:bold;color:#fff;cursor:pointer;margin-top:.4rem;
+}
+.btn-terracota{background:var(--terracota)}
+.btn-terracota:hover{background:var(--terracota-osc)}
+.btn-bosque{background:var(--bosque)}
+.btn-bosque:hover{background:var(--bosque-osc)}
+.btn-borde{background:#fff;color:var(--bosque-osc);border:2px solid var(--bosque)}
+.btn-borde:hover{background:var(--bosque-claro)}
+label{display:block;font-weight:bold;margin:1.1rem 0 .3rem}
+.req,.opc{font-weight:normal;color:var(--suave);font-size:.95rem}
+input[type=text]{
+  width:100%;font:inherit;padding:.75rem .9rem;border:2px solid #BDB2A2;border-radius:10px;
+  background:#fff;color:var(--tinta);min-height:48px;
+}
+.error{color:#9B2C1A;font-weight:bold;margin:.8rem 0 0}
+.consecuencia{
+  background:var(--neutro);border-left:5px solid #A39A8E;border-radius:6px;
+  padding:.9rem 1.1rem;margin:1rem 0 1.2rem;font-size:1.1rem;
+}
+.eleccion{color:var(--suave);font-size:.98rem}
+.cierre{
+  background:var(--bosque-claro);border-left:5px solid var(--bosque);border-radius:6px;
+  padding:.9rem 1.1rem;margin:.4rem 0 1rem;
+}
+.alumno{margin:.2rem 0 0;color:var(--suave)}
+table.vars{width:100%;border-collapse:collapse;margin:.4rem 0 .4rem}
+table.vars th,table.vars td{padding:.55rem .4rem;border-bottom:1px solid var(--borde);text-align:left}
+table.vars td{text-align:right;font-weight:bold;white-space:nowrap}
+.nota{font-size:.92rem;color:var(--suave)}
+ol.recorrido{list-style:none;margin:.6rem 0 0;padding:0 0 0 1.2rem;border-left:3px solid var(--bosque)}
+ol.recorrido li{position:relative;padding:0 0 1.2rem 1rem}
+ol.recorrido li::before{
+  content:"";position:absolute;left:-1.62rem;top:.5rem;width:.9rem;height:.9rem;
+  border-radius:50%;background:var(--terracota);border:2px solid var(--crema);
+}
+ol.recorrido li.fin::before{background:var(--bosque);width:1.05rem;height:1.05rem;left:-1.7rem}
+.paso-id{font-weight:bold;color:var(--terracota-osc)}
+.fin .paso-id{color:var(--bosque-osc)}
+.paso-txt{font-size:.98rem;color:var(--suave);margin:.1rem 0 .3rem}
+.paso-dec{margin:.1rem 0 .2rem}
+.paso-cons{font-size:.95rem;color:var(--suave);margin:0}
+.codigo{
+  display:block;padding:.8rem 1rem;background:var(--neutro);border:1px solid var(--borde);
+  border-radius:10px;font-family:Consolas,Menlo,"Courier New",monospace;font-size:.92rem;
+  word-break:break-word;user-select:all;
+}
+.estado-copia{min-height:1.6rem;margin:.5rem 0 0;font-size:.95rem;color:var(--bosque-osc)}
+.acciones{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center}
+@media (max-width:520px){
+  html{font-size:17px}
+  .tarjeta{padding:1.2rem 1.1rem}
+  h1{font-size:1.5rem}
+}
+@media (prefers-reduced-motion:no-preference){
+  .opcion,.btn{transition:background-color .15s}
+}
+</style>
+</head>
+<body>
+<div class="barra"><div class="envoltura" id="barraTitulo"></div></div>
+<main class="envoltura" id="app">
+  <noscript>Este simulador necesita JavaScript habilitado en el navegador.</noscript>
+</main>
+
+<script>
+/* =====================================================================
+   DATOS DEL SIMULADOR (JSON constante)
+   Todo el contenido, las variables y las reglas viven acá.
+   El motor y la vista (más abajo) no contienen textos del caso.
+
+   Escalas (las variables numéricas se mueven entre 0 y 10):
+   - PR (puntos de razonamiento): puntos de la plantilla ÷ 10.
+   - T (tiempo): en días; 24 h = 1 día; 4 h = 0,2 días.
+   - PRES (presupuesto): unidades de la plantilla ÷ 4 (40 → 10).
+   ===================================================================== */
+const DATOS = {
+  "ficha": {
+    "titulo": "Cuarto caliente en el tambo: ¿qué hay en esa leche?",
+    "objetivo": "Que el estudiante, a partir de una muestra de leche de un cuarto con mastitis clínica, seleccione medios de cultivo, interprete crecimiento y morfología, elija entre las pruebas bioquímicas pertinentes e identifique el agente etiológico y su perfil de sensibilidad para orientar el tratamiento.",
+    "rol": "Veterinario/a a cargo del laboratorio de diagnóstico de un tambo. Llegó una vaca Holstein, 3.ª lactancia, 60 días en lactancia, con el cuarto posterior izquierdo caliente, inflamado y con leche con grumos. Sin signos sistémicos."
+  },
+
+  "interfaz": {
+    "barra": "Simulador de decisión",
+    "objetivo": "Objetivo",
+    "rol": "Tu rol",
+    "nombre": "Nombre y apellido",
+    "legajo": "Legajo o DNI",
+    "obligatorio": "(obligatorio)",
+    "opcional": "(opcional)",
+    "errorNombre": "Ingresá tu nombre y apellido para comenzar.",
+    "comenzar": "Comenzar",
+    "decision": "Decisión",
+    "paso": "paso",
+    "consecuencia": "Consecuencia",
+    "elegiste": "Elegiste:",
+    "continuar": "Continuar",
+    "final": "Final",
+    "estudiante": "Estudiante:",
+    "legajoDni": "Legajo o DNI:",
+    "cierre": "Comentario de cierre",
+    "estadoFinal": "Estado final de las variables",
+    "notaVariables": "Las variables numéricas están en una escala de 0 a 10. Las variables de tipo sí/no se muestran como si o no.",
+    "recorrido": "Tu recorrido",
+    "tuDecision": "Tu decisión",
+    "codigo": "Código de recorrido",
+    "copiar": "Copiar código",
+    "copiado": "Código copiado al portapapeles.",
+    "copiaFallida": "No se pudo copiar automáticamente. Seleccioná el código y copialo a mano.",
+    "reiniciar": "Volver al inicio"
+  },
+
+  "limites": { "min": 0, "max": 10 },
+
+  "variables": [
+    { "id": "PR",   "nombre": "Puntos de razonamiento",         "tipo": "numerica", "inicio": 0 },
+    { "id": "T",    "nombre": "Tiempo transcurrido (días)",     "tipo": "numerica", "inicio": 0 },
+    { "id": "PRES", "nombre": "Presupuesto del laboratorio",    "tipo": "numerica", "inicio": 10 },
+    { "id": "CONT", "nombre": "Contaminación de la muestra",    "tipo": "booleana", "inicio": "no" }
+  ],
+
+  "reglasGlobales": [
+    { "si": { "var": "T",    "op": ">",  "valor": 5 }, "destino": "F6" },
+    { "si": { "var": "PRES", "op": "<=", "valor": 0 }, "destino": "F6" }
+  ],
+
+  "sinOpcionesDestino": "F6",
+
+  "nodos": {
+    "N1":  { "tipo": "decision", "texto": "Tenés a la vaca en la manga. ¿Cómo tomás la muestra de leche?" },
+    "N2":  { "tipo": "decision", "texto": "Muestra en el laboratorio. ¿Qué medios de cultivo sembrás?" },
+    "N2B": { "tipo": "decision", "texto": "A las 24 h no hay desarrollo bacteriano relevante en el medio sembrado. ¿Qué hacés?" },
+    "N3":  { "tipo": "decision", "texto": "A las 24 h. *[Foto: agar sangre con colonias de 2–3 mm, redondas, convexas, cremosas, amarillo-doradas, con doble halo de hemólisis. MacConkey sin desarrollo, si fue sembrado.]* Gram: cocos Gram positivos agrupados en racimos. ¿Qué prueba hacés primero?" },
+    "N3B": { "tipo": "decision", "texto": "Oxidasa: **negativa**. Perdiste tiempo y reactivo, y seguís sin saber el género. ¿Cómo seguís?" },
+    "N4":  { "tipo": "decision", "texto": "Catalasa: **positiva** (burbujeo inmediato). Cocos Gram positivos catalasa positivos. ¿Qué prueba bioquímica elegís?" },
+    "N5":  { "tipo": "decision", "texto": "Coagulasa en tubo (plasma de conejo): **positiva** a las 4 h. ¿Cómo seguís?" },
+    "N6":  { "tipo": "decision", "texto": "Identificación de trabajo: *Staphylococcus aureus*. ¿Estudiás la sensibilidad a antimicrobianos?" },
+    "N7":  { "tipo": "decision", "texto": "Antibiograma (Kirby-Bauer en Mueller-Hinton): penicilina **R**, ampicilina **R**, cefoxitina **S**, cefalexina **S**, amoxicilina-clavulánico **S**, eritromicina **S**. ¿Qué informás?" },
+
+    "F1": {
+      "tipo": "final",
+      "titulo": "Diagnóstico completo y correcto",
+      "texto": "Informe: *S. aureus* (MSSA, productor de β-lactamasa).",
+      "cierre": "Recorrido ideal. Catalasa positiva descartó estreptococos; la coagulasa separó *S. aureus* de los estafilococos coagulasa negativos. La resistencia a penicilina con cefoxitina sensible sugiere β-lactamasa sin resistencia a meticilina, por eso la penicilina G no es buena opción. Recordá que *S. aureus* es contagioso: sumá medidas de manejo (ordeñe de la vaca al final, desinfección de pezones post-ordeñe, revisar el resto del rodeo) y respetar el período de retiro de leche."
+    },
+    "F2": {
+      "tipo": "final",
+      "titulo": "Falso negativo",
+      "texto": "Informás cultivo negativo.",
+      "cierre": "Falso negativo. *S. aureus* no desarrolla en MacConkey y el Sabouraud no es el medio de elección para bacterias. Un cultivo negativo debe resembrarse en agar sangre antes de informarse. Mientras tanto, la vaca sigue eliminando bacterias y contagiando."
+    },
+    "F3": {
+      "tipo": "final",
+      "titulo": "Informe incompleto",
+      "texto": "Informe sin identificación completa o sin perfil de sensibilidad.",
+      "cierre": "Tratar sin identificar o identificar sin antibiograma deja al clínico a ciegas. Las cepas de *S. aureus* de mastitis suelen variar en resistencia entre establecimientos. Completá la secuencia: identificación y sensibilidad."
+    },
+    "F4": {
+      "tipo": "final",
+      "titulo": "Diagnóstico correcto con muestra cuestionable",
+      "texto": "Informás *S. aureus*, pero pedís nueva muestra.",
+      "cierre": "Identificación correcta, pero la muestra no se tomó con asepsia, así que un resultado así no es confiable (podría haber contaminantes de la piel del pezón). Hiciste bien en pedir una nueva muestra: revisá el protocolo de toma de muestra (limpieza, desinfección del pezón, descarte de los primeros chorros)."
+    },
+    "F5": {
+      "tipo": "final",
+      "titulo": "Error de interpretación terapéutica",
+      "texto": "Recomendación terapéutica equivocada.",
+      "cierre": "La interpretación del antibiograma cambia el tratamiento. Penicilina G sería ineficaz frente a una cepa productora de β-lactamasa; y rotular como MRSA una cepa con cefoxitina sensible lleva a descartes y manejos innecesarios. Releé qué mide cada antimicrobiano del panel."
+    },
+    "F6": {
+      "tipo": "final",
+      "titulo": "Recursos agotados",
+      "texto": "Se agotó el tiempo o el presupuesto.",
+      "cierre": "Cada prueba innecesaria cuesta horas y dinero, y mientras tanto la vaca está en tratamiento empírico. Elegir pruebas según la morfología evita rodeos."
+    },
+    "F7": {
+      "tipo": "final",
+      "titulo": "Ruta o muestra inadecuada",
+      "texto": "Ruta o muestra inadecuada.",
+      "cierre": "Una muestra de tanque mezcla leche de muchas vacas y no sirve para diagnosticar un cuarto individual. Las pruebas de enterobacterias (TSI, IMViC) corresponden a bacilos Gram negativos, y acá el Gram mostraba cocos Gram positivos. Revisá la relación entre morfología y prueba."
+    }
+  },
+
+  "opciones": [
+    { "id": "N1-A", "nodo": "N1", "texto": "Limpio y desinfecto el pezón, descarto los primeros chorros y tomo la muestra del cuarto afectado en frasco estéril.",
+      "destino": "N2", "efectos": [ {"var":"PR","op":"+","valor":1}, {"var":"PRES","op":"-","valor":0.5} ], "condicion": null,
+      "consecuencia": "Muestra bien tomada." },
+    { "id": "N1-B", "nodo": "N1", "texto": "Ordeño directamente en un frasco, sin desinfectar el pezón.",
+      "destino": "N2", "efectos": [ {"var":"PRES","op":"-","valor":0.5}, {"var":"CONT","op":"=","valor":"si"} ], "condicion": null,
+      "consecuencia": "Muestra tomada. Seguís." },
+    { "id": "N1-C", "nodo": "N1", "texto": "Tomo una muestra del tanque de leche.",
+      "destino": "F7", "efectos": [], "condicion": null,
+      "consecuencia": "Esa leche es de todo el rodeo." },
+
+    { "id": "N2-A", "nodo": "N2", "texto": "Agar sangre ovina 5 % + MacConkey.",
+      "destino": "N3", "efectos": [ {"var":"PR","op":"+","valor":1.5}, {"var":"PRES","op":"-","valor":1.5}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":1.5},
+      "consecuencia": "Sembrado y en estufa a 37 °C." },
+    { "id": "N2-B", "nodo": "N2", "texto": "Solo agar sangre.",
+      "destino": "N3", "efectos": [ {"var":"PR","op":"+","valor":0.8}, {"var":"PRES","op":"-","valor":0.75}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.75},
+      "consecuencia": "Sembrado y en estufa. Ahorraste, pero no vas a ver a los bacilos Gram negativos." },
+    { "id": "N2-C", "nodo": "N2", "texto": "Solo MacConkey.",
+      "destino": "N2B", "efectos": [ {"var":"PRES","op":"-","valor":0.75}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.75},
+      "consecuencia": "A las 24 h no hay desarrollo." },
+    { "id": "N2-D", "nodo": "N2", "texto": "Agar Sabouraud.",
+      "destino": "N2B", "efectos": [ {"var":"PRES","op":"-","valor":0.75}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.75},
+      "consecuencia": "Es un medio para hongos y levaduras, y no hay desarrollo." },
+
+    { "id": "N2B-A", "nodo": "N2B", "texto": "Resiembro en agar sangre.",
+      "destino": "N3", "efectos": [ {"var":"PRES","op":"-","valor":0.75}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.75},
+      "consecuencia": "Resembrado. Un día más." },
+    { "id": "N2B-B", "nodo": "N2B", "texto": "Informo cultivo negativo.",
+      "destino": "F2", "efectos": [], "condicion": null, "consecuencia": null },
+
+    { "id": "N3-A", "nodo": "N3", "texto": "Catalasa.",
+      "destino": "N4", "efectos": [ {"var":"PR","op":"+","valor":1.5}, {"var":"PRES","op":"-","valor":0.25} ], "condicion": null,
+      "consecuencia": "Burbujeo inmediato con H₂O₂." },
+    { "id": "N3-B", "nodo": "N3", "texto": "Oxidasa.",
+      "destino": "N3B", "efectos": [ {"var":"PR","op":"-","valor":0.5}, {"var":"PRES","op":"-","valor":0.25} ], "condicion": null,
+      "consecuencia": "Reacción negativa: la oxidasa ayuda con bacilos Gram negativos." },
+    { "id": "N3-C", "nodo": "N3", "texto": "Voy directo al antibiograma.",
+      "destino": "F3", "efectos": [], "condicion": null,
+      "consecuencia": "Sin identificar, el informe queda incompleto." },
+
+    { "id": "N3B-A", "nodo": "N3B", "texto": "Hago la catalasa.",
+      "destino": "N4", "efectos": [ {"var":"PR","op":"+","valor":1}, {"var":"PRES","op":"-","valor":0.25} ], "condicion": null,
+      "consecuencia": "Burbujeo inmediato." },
+    { "id": "N3B-B", "nodo": "N3B", "texto": "Paso a pruebas de enterobacterias (TSI, IMViC).",
+      "destino": "F7", "efectos": [], "condicion": null,
+      "consecuencia": "Esas pruebas no corresponden a cocos." },
+
+    { "id": "N4-A", "nodo": "N4", "texto": "Coagulasa en tubo.",
+      "destino": "N5", "efectos": [ {"var":"PR","op":"+","valor":2}, {"var":"PRES","op":"-","valor":0.75}, {"var":"T","op":"+","valor":0.2} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.75},
+      "consecuencia": "Coágulo visible a las 4 h." },
+    { "id": "N4-B", "nodo": "N4", "texto": "CAMP test.",
+      "destino": "N4", "efectos": [ {"var":"PR","op":"-","valor":0.5}, {"var":"PRES","op":"-","valor":0.5}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.5},
+      "consecuencia": "Negativo. El CAMP se usa para *Streptococcus agalactiae*, que es catalasa negativo." },
+    { "id": "N4-C", "nodo": "N4", "texto": "Bilis esculina.",
+      "destino": "N4", "efectos": [ {"var":"PR","op":"-","valor":0.5}, {"var":"PRES","op":"-","valor":0.5}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":0.5},
+      "consecuencia": "Sin ennegrecimiento. Es una prueba para estreptococos y enterococos." },
+
+    { "id": "N5-A", "nodo": "N5", "texto": "Agar manitol salado + DNasa.",
+      "destino": "N6", "efectos": [ {"var":"PR","op":"+","valor":1.5}, {"var":"PRES","op":"-","valor":1}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":1},
+      "consecuencia": "Colonias amarillas (fermentan manitol) y halo de DNasa positivo: *S. aureus*." },
+    { "id": "N5-B", "nodo": "N5", "texto": "Acepto *S. aureus* solo por coagulasa positiva.",
+      "destino": "N6", "efectos": [ {"var":"PR","op":"+","valor":0.5} ], "condicion": null,
+      "consecuencia": "Avanzás más rápido, pero sin confirmación (existen otros estafilococos coagulasa positivos, como *S. hyicus* o *S. intermedius*)." },
+
+    { "id": "N6-A", "nodo": "N6", "texto": "Antibiograma por difusión en agar (Mueller-Hinton), con cefoxitina incluida.",
+      "destino": "N7", "efectos": [ {"var":"PR","op":"+","valor":1.5}, {"var":"PRES","op":"-","valor":2}, {"var":"T","op":"+","valor":1} ],
+      "condicion": {"var":"PRES","op":">=","valor":2},
+      "consecuencia": "Discos colocados, a estufa." },
+    { "id": "N6-B", "nodo": "N6", "texto": "Informo *S. aureus* sin antibiograma.",
+      "destino": "F3", "efectos": [], "condicion": null, "consecuencia": null },
+
+    { "id": "N7-A", "nodo": "N7", "texto": "Informo *S. aureus* MSSA con β-lactamasa. Recomiendo no usar penicilina G y elegir según el antibiograma.",
+      "destino": "F1", "efectos": [ {"var":"PR","op":"+","valor":1} ],
+      "condicion": {"var":"CONT","op":"=","valor":"no"}, "consecuencia": null },
+    { "id": "N7-B", "nodo": "N7", "texto": "Informo *S. aureus* y pido nueva muestra: el crecimiento y la toma no son confiables.",
+      "destino": "F4", "efectos": [ {"var":"PR","op":"+","valor":0.5} ],
+      "condicion": {"var":"CONT","op":"=","valor":"si"}, "consecuencia": null },
+    { "id": "N7-C", "nodo": "N7", "texto": "Recomiendo penicilina G (es la de primera línea para estafilococos).",
+      "destino": "F5", "efectos": [ {"var":"PR","op":"-","valor":1} ], "condicion": null, "consecuencia": null },
+    { "id": "N7-D", "nodo": "N7", "texto": "Informo MRSA.",
+      "destino": "F5", "efectos": [ {"var":"PR","op":"-","valor":1} ], "condicion": null, "consecuencia": null }
+  ]
+};
+
+/* =====================================================================
+   MOTOR (lógica pura, sin acceso a la pantalla)
+   ===================================================================== */
+const Motor = {
+  limitar(x) {
+    const r = Math.round(x * 100) / 100;
+    return Math.min(DATOS.limites.max, Math.max(DATOS.limites.min, r));
+  },
+
+  definicion(id) {
+    return DATOS.variables.find(function (v) { return v.id === id; });
+  },
+
+  opcion(id) {
+    return DATOS.opciones.find(function (o) { return o.id === id; });
+  },
+
+  variablesIniciales() {
+    const vars = {};
+    DATOS.variables.forEach(function (d) {
+      vars[d.id] = d.tipo === "numerica" ? Motor.limitar(d.inicio) : d.inicio;
+    });
+    return vars;
+  },
+
+  nuevoEstado(nombre, legajo) {
+    return { alumno: { nombre: nombre, legajo: legajo }, vars: Motor.variablesIniciales(), camino: [] };
+  },
+
+  cumple(cond, vars) {
+    if (!cond) return true;
+    const a = vars[cond.var];
+    const b = cond.valor;
+    switch (cond.op) {
+      case "=":  return a === b;
+      case "!=": return a !== b;
+      case ">":  return a > b;
+      case ">=": return a >= b;
+      case "<":  return a < b;
+      case "<=": return a <= b;
+    }
+    return false;
+  },
+
+  opcionesVisibles(nodoId, vars) {
+    return DATOS.opciones.filter(function (o) {
+      return o.nodo === nodoId && Motor.cumple(o.condicion, vars);
+    });
+  },
+
+  aplicarEfectos(vars, efectos) {
+    efectos.forEach(function (e) {
+      const d = Motor.definicion(e.var);
+      if (d.tipo === "booleana") {
+        if (e.op === "=") vars[e.var] = e.valor;
+        return;
+      }
+      let v = vars[e.var];
+      if (e.op === "+") v += e.valor;
+      else if (e.op === "-") v -= e.valor;
+      else if (e.op === "=") v = e.valor;
+      vars[e.var] = Motor.limitar(v);
+    });
+  },
+
+  /* Si el destino es un nodo de decisión, las reglas globales pueden desviarlo. */
+  resolverDestino(destino, vars) {
+    if (DATOS.nodos[destino].tipo === "final") return destino;
+    for (let i = 0; i < DATOS.reglasGlobales.length; i++) {
+      const r = DATOS.reglasGlobales[i];
+      if (Motor.cumple(r.si, vars)) return r.destino;
+    }
+    return destino;
+  },
+
+  /* Orden estricto: 1) efectos, 2) condición de destino, 3) (la vista muestra la consecuencia). */
+  elegir(estado, opcion) {
+    Motor.aplicarEfectos(estado.vars, opcion.efectos);
+    const destino = Motor.resolverDestino(opcion.destino, estado.vars);
+    estado.camino.push({ nodo: opcion.nodo, opcion: opcion.id, destino: destino });
+    return destino;
+  },
+
+  codigo(estado, finalId) {
+    return estado.camino.map(function (p) { return p.opcion; }).concat([finalId]).join(" > ");
+  }
+};
+
+/* =====================================================================
+   VISTA (pantallas)
+   ===================================================================== */
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* Texto con **negrita** y *cursiva*; lo que va entre [Foto: ...] se marca como espacio de imagen. */
+function fmt(s) {
+  let t = esc(s);
+  t = t.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/\*(.+?)\*/g, function (m, c) {
+    return c.indexOf("[Foto") === 0 ? '<span class="foto">' + c + "</span>" : "<em>" + c + "</em>";
+  });
+  return t;
+}
+
+const Vista = {
+  app: null,
+  estado: null,
+  U: DATOS.interfaz,
+
+  iniciar() {
+    this.app = document.getElementById("app");
+    document.getElementById("barraTitulo").textContent = this.U.barra;
+    document.title = DATOS.ficha.titulo;
+    this.pantallaInicio();
+  },
+
+  pintar(html) {
+    this.app.innerHTML = html;
+    const foco = document.getElementById("foco");
+    if (foco) foco.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  },
+
+  pantallaInicio() {
+    const U = this.U, f = DATOS.ficha;
+    this.pintar(
+      '<section class="tarjeta decision">' +
+        '<h1 id="foco" tabindex="-1">' + esc(f.titulo) + "</h1>" +
+        '<h2 class="subtitulo">' + esc(U.objetivo) + "</h2><p>" + fmt(f.objetivo) + "</p>" +
+        '<h2 class="subtitulo">' + esc(U.rol) + "</h2><p>" + fmt(f.rol) + "</p>" +
+        '<form id="formInicio" novalidate>' +
+          '<label for="nombre">' + esc(U.nombre) + ' <span class="req">' + esc(U.obligatorio) + "</span></label>" +
+          '<input id="nombre" type="text" autocomplete="name" required>' +
+          '<label for="legajo">' + esc(U.legajo) + ' <span class="opc">' + esc(U.opcional) + "</span></label>" +
+          '<input id="legajo" type="text" autocomplete="off">' +
+          '<p id="error" class="error" role="alert" hidden></p>' +
+          '<button class="btn btn-terracota" type="submit">' + esc(U.comenzar) + "</button>" +
+        "</form>" +
+      "</section>"
+    );
+    const self = this;
+    document.getElementById("formInicio").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      const nombre = document.getElementById("nombre").value.trim();
+      const legajo = document.getElementById("legajo").value.trim();
+      const err = document.getElementById("error");
+      if (!nombre) {
+        err.textContent = U.errorNombre;
+        err.hidden = false;
+        document.getElementById("nombre").focus();
+        return;
+      }
+      self.estado = Motor.nuevoEstado(nombre, legajo);
+      self.irA("N1");
+    });
+  },
+
+  irA(id) {
+    if (DATOS.nodos[id].tipo === "final") this.pantallaFinal(id);
+    else this.pantallaNodo(id);
+  },
+
+  pantallaNodo(id) {
+    const U = this.U, estado = this.estado, nodo = DATOS.nodos[id];
+    const visibles = Motor.opcionesVisibles(id, estado.vars);
+    if (visibles.length === 0) {
+      estado.camino.push({ nodo: id, opcion: null, destino: DATOS.sinOpcionesDestino });
+      this.irA(DATOS.sinOpcionesDestino);
+      return;
+    }
+    const botones = visibles.map(function (o) {
+      const letra = o.id.split("-").pop();
+      return '<button type="button" class="opcion" data-id="' + esc(o.id) + '">' +
+               '<span class="letra" aria-hidden="true">' + esc(letra) + "</span>" +
+               "<span>" + fmt(o.texto) + "</span></button>";
+    }).join("");
+    this.pintar(
+      '<section class="tarjeta decision">' +
+        '<h2 id="foco" tabindex="-1" class="etiqueta">' + esc(U.decision) + " (" + esc(U.paso) + " " + (estado.camino.length + 1) + ")</h2>" +
+        '<p class="situacion">' + fmt(nodo.texto) + "</p>" +
+        '<div class="opciones">' + botones + "</div>" +
+      "</section>"
+    );
+    const self = this;
+    Array.prototype.forEach.call(this.app.querySelectorAll(".opcion"), function (b) {
+      b.addEventListener("click", function () {
+        self.elegir(Motor.opcion(b.getAttribute("data-id")));
+      });
+    });
+  },
+
+  elegir(opcion) {
+    const destino = Motor.elegir(this.estado, opcion);
+    if (opcion.consecuencia) this.pantallaConsecuencia(opcion, destino);
+    else this.irA(destino);
+  },
+
+  pantallaConsecuencia(opcion, destino) {
+    const U = this.U, self = this;
+    this.pintar(
+      '<section class="tarjeta neutra">' +
+        '<h2 id="foco" tabindex="-1" class="etiqueta">' + esc(U.consecuencia) + "</h2>" +
+        '<p class="eleccion">' + esc(U.elegiste) + " " + fmt(opcion.texto) + "</p>" +
+        '<div class="consecuencia">' + fmt(opcion.consecuencia) + "</div>" +
+        '<button type="button" id="continuar" class="btn btn-terracota">' + esc(U.continuar) + "</button>" +
+      "</section>"
+    );
+    document.getElementById("continuar").addEventListener("click", function () { self.irA(destino); });
+  },
+
+  valor(def, v) {
+    return def.tipo === "numerica" ? String(v).replace(".", ",") : String(v);
+  },
+
+  pantallaFinal(id) {
+    const U = this.U, estado = this.estado, nodo = DATOS.nodos[id], self = this;
+    const codigo = Motor.codigo(estado, id);
+
+    const filasVars = DATOS.variables.map(function (d) {
+      return '<tr><th scope="row">' + esc(d.nombre) + "</th><td>" + esc(self.valor(d, estado.vars[d.id])) + "</td></tr>";
+    }).join("");
+
+    const pasos = estado.camino.map(function (p) {
+      const n = DATOS.nodos[p.nodo];
+      const o = p.opcion ? Motor.opcion(p.opcion) : null;
+      return "<li>" +
+        '<p class="paso-txt"><span class="paso-id">' + esc(p.nodo) + "</span> " + fmt(n.texto) + "</p>" +
+        (o ? '<p class="paso-dec"><strong>' + esc(U.tuDecision) + " (" + esc(o.id) + "):</strong> " + fmt(o.texto) + "</p>" : "") +
+        (o && o.consecuencia ? '<p class="paso-cons">' + fmt(o.consecuencia) + "</p>" : "") +
+      "</li>";
+    }).join("");
+
+    const legajo = estado.alumno.legajo
+      ? '<p class="alumno">' + esc(U.legajoDni) + " " + esc(estado.alumno.legajo) + "</p>" : "";
+
+    this.pintar(
+      '<section class="tarjeta final">' +
+        '<p class="etiqueta">' + esc(U.final) + " " + esc(id) + "</p>" +
+        '<h1 id="foco" tabindex="-1">' + esc(nodo.titulo) + "</h1>" +
+        '<p class="situacion">' + fmt(nodo.texto) + "</p>" +
+        '<h3>' + esc(U.cierre) + "</h3>" +
+        '<div class="cierre">' + fmt(nodo.cierre) + "</div>" +
+        '<p class="alumno"><strong>' + esc(U.estudiante) + "</strong> " + esc(estado.alumno.nombre) + "</p>" + legajo +
+        "<h3>" + esc(U.estadoFinal) + "</h3>" +
+        '<table class="vars"><tbody>' + filasVars + "</tbody></table>" +
+        '<p class="nota">' + esc(U.notaVariables) + "</p>" +
+        "<h3>" + esc(U.recorrido) + "</h3>" +
+        '<ol class="recorrido">' + pasos +
+          '<li class="fin"><p class="paso-dec"><span class="paso-id">' + esc(id) + "</span> <strong>" + esc(nodo.titulo) + "</strong></p></li>" +
+        "</ol>" +
+        "<h3>" + esc(U.codigo) + "</h3>" +
+        '<code class="codigo" id="codigo">' + esc(codigo) + "</code>" +
+        '<div class="acciones">' +
+          '<button type="button" id="copiar" class="btn btn-bosque">' + esc(U.copiar) + "</button>" +
+          '<button type="button" id="reiniciar" class="btn btn-borde">' + esc(U.reiniciar) + "</button>" +
+        "</div>" +
+        '<p id="estadoCopia" class="estado-copia" role="status"></p>' +
+      "</section>"
+    );
+
+    document.getElementById("copiar").addEventListener("click", function () {
+      self.copiar(codigo, document.getElementById("estadoCopia"));
+    });
+    document.getElementById("reiniciar").addEventListener("click", function () {
+      self.estado = null;
+      self.pantallaInicio();
+    });
+  },
+
+  copiar(texto, salida) {
+    const U = this.U;
+    function ok() { salida.textContent = U.copiado; }
+    function respaldo() {
+      let copiado = false;
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { copiado = document.execCommand("copy"); } catch (e) { copiado = false; }
+      document.body.removeChild(ta);
+      salida.textContent = copiado ? U.copiado : U.copiaFallida;
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(texto).then(ok, respaldo);
+    } else {
+      respaldo();
+    }
+  }
+};
+
+if (typeof document !== "undefined" && document.getElementById("app")) {
+  Vista.iniciar();
+}
+</script>
+</body>
+</html>
